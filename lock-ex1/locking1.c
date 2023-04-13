@@ -19,6 +19,19 @@ int ok_example3(void)
 	return 789;
 }
 
+int ok_with_branch(int branch)
+{
+	if (branch == 1)
+		return 123;
+	if (branch == 2){
+		acquire_lock();
+		do_some_stuff();
+		release_lock();
+		return 567;
+	}
+	return 89;
+}
+
 int bug_rel_wo_lock(void)
 {
 	int a = 1;

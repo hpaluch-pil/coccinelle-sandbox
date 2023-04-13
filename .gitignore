@@ -2,4 +2,14 @@
 *~
 *.swp
 *.tmp
+*.bak
+
+# ignore *.dot for GraphViz
+*.dot
+*.ps
+*.pdf
+# ignore *.cocci_res (result file from spatch)
+*.cocci_res
+# but include those in results/ directory
+!ex1/results/*.cocci_res
 

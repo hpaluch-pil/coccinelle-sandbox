@@ -9,3 +9,9 @@
   return ...;
 )
 
+@release_wo_lock exists@
+@@
+  ... when != acquire_lock();
+- release_lock();
+  return ...;
+
