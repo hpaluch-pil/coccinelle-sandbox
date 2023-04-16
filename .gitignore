@@ -6,6 +6,7 @@
 
 # ignore *.dot for GraphViz
 *.dot
+!dead-code/output/*.dot
 *.ps
 *.pdf
 # ignore *.cocci_res (result file from spatch)
