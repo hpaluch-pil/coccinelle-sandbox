@@ -121,12 +121,8 @@ TODO: ...
 
 # How to debug
 
-Not used anymore - kept for reference.
-
 How to debug and find full backtrace...
 - https://ocaml.org/docs/debugging#printing-a-back-trace-for-an-uncaught-exception
-
-TODO: ...
 
 Install:
 
@@ -159,6 +155,118 @@ FLOW: deadcode detected: File "simple1.c", line 7
 
 Now try debugger
 - see https://ocaml.org/docs/debugging#printing-a-back-trace-for-an-uncaught-exception
+
+> IMPORTANT TRICK!
+>
+> Normally Coccinelle catches exceptions and pretty prints them as error.
+> This make it hard to debug, because there is no exception to be catched by debugger (with stacktrace).
+>
+> To disable this behaviour (let exception to abort program) you have to pass
+> additional option `--debugger`
+
+```bash
+$ ocamldebug ~/src/coccinelle-1.1.0.deb/spatch --debugger \
+     --macro-file-builtins macros.h --control-flow simple1.c
+
+	OCaml Debugger version 4.11.1
+
+(ocd) r
+Loading program... 
+
+init_defs_builtins: macros.h
+FLOW: deadcode detected: File "simple1.c", line 7
+Time: 231374
+Program exit.
+```
+Hmmm, in this case it did not help, because `parsing_c/test_parsing_c.ml` function
+`Ast_to_flow.deadcode_detection` catches exception (so debugger flag will not help)...
+
+This change was needed (and then rebuild):
+```diff
+diff -u ~/clean-src/coccinelle-1.1.0.deb/$x $x
+--- /home/ansible/clean-src/coccinelle-1.1.0.deb/parsing_c/test_parsing_c.ml	2021-02-24 14:52:51.000000000 +0100
++++ parsing_c/test_parsing_c.ml	2023-04-16 15:15:16.256000000 +0200
+@@ -246,12 +246,13 @@
+     match toprocess with
+       None -> ()
+     | Some fn -> (* old: Flow_to_ast.test !Flag.show_flow def *)
+-	try
++	(* HP1 try *)
+           let flow = Ast_to_flow.ast_to_control_flow e in
+           flow +> do_option (fun flow ->
++            Printf.printf "Before X1\n";
+             Ast_to_flow.deadcode_detection flow;
++            Printf.printf "Before X2\n";
+             let flow = Ast_to_flow.annotate_loop_nodes flow in
+-
+             let flow' =
+ (*
+               if !Flag_cocci.show_before_fixed_flow
+@@ -268,7 +269,7 @@
+ 		fl^":"^fn^".dot" in
+             Control_flow_c.G.print_ograph_mutable flow' (filename) launchgv
+           )
+-        with Ast_to_flow.Error (x) -> Ast_to_flow.report_error x
++        (* with Ast_to_flow.Error (x) -> Ast_to_flow.report_error x *)
+       )
+ 
+ let test_cfg = local_test_cfg true
+```
+
+And rebuild with:
+```bash
+make EXTRA_OCAML_FLAGS=-g
+```
+Run again:
+```bash
+$ ocamldebug ~/src/coccinelle-1.1.0.deb/spatch --debugger \
+     --macro-file-builtins macros.h --control-flow simple1.c
+
+	OCaml Debugger version 4.11.1
+
+
+(ocd) r
+Loading program... done.
+# it may take several minutes to proceed...
+init_defs_builtins: macros.h
+Time: 230693
+Program end.
+Uncaught exception: Coccinelle_modules.Control_flow_c_build.Error _
+
+# Don't worry - we can travel back in time!
+
+(ocd) b
+
+Time: 230692 - pc: 0:919032 - module Common
+171     raise e<|a|>
+
+# you can use "list" command to see source code listing
+# somehow there is still some kind of wrapper.
+
+# we can show backtrace (and travel various stack frames):
+(ocd) bt
+
+Backtrace:
+#0 Common commons/common.ml:171:12
+#1 Common commons/common.ml:3533:10
+#2 Main main.ml:2:3
+
+# or we can issue `b`(ack) again...
+# many `b`es later:
+
+(ocd) b
+Time: 230678 - pc: 0:4973284 - module Control_flow_c_build
+1579 		Some info -> raise (Error (DeadCode (Some info)))<|a|>
+
+# again you can use "list" to see code around
+```
+
+TODO:
+
+## Old debug
+
+Kept just for reference
+
 
 ```bash
 $ ocamldebug ~/src/coccinelle-1.1.0.deb/spatch --macro-file-builtins macros.h --control-flow simple1.c
