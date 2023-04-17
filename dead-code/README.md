@@ -38,18 +38,67 @@ sudo apt-get install git
 mkdir -p ~/projects
 cd ~/projects
 git clone https://github.com/hpaluch-pil/coccinelle-sandbox.git
-cd cd coccinelle-sandbox/dead-code
+cd coccinelle-sandbox/dead-code
 ```
 
 And then run just:
 ```bash
-./show_flow.sh
+$ ./show_flow.sh 
 
-+ spatch --macro-file-builtins macros.h --control-flow simple1.c
++ spatch --macro-file-builtins macros.h --control-flow --debug-cpp simple1.c
 init_defs_builtins: macros.h
+(ONCE) CPP-MACRO: found known macro = my_return
 FLOW: deadcode detected: File "simple1.c", line 7
 + exit 0
 ```
+
+Just little help:
+
+```bash
+$ spatch -macro-file-builtins macros.h  --parse-c simple1.c
+
+init_defs_builtins: macros.h
+
+PARSING: simple1.c
+(ONCE) CPP-MACRO: found known macro = my_return
+passed:my_return ( 345 ) 
+-----------------------------------------------------------------------
+maybe 10 most problematic tokens
+-----------------------------------------------------------------------
+-----------------------------------------------------------------------
+NB total files = 1; perfect = 1; pbs = 0; timeout = 0; =========> 100%
+nb good = 9,  nb passed = 1 =========> 10.00% passed
+nb good = 9,  nb bad = 0 =========> 100.00% good or passed
+```
+
+Stacktrace of `found known macro` message:
+```bash
+
+$ ocamldebug ~/src/coccinelle-1.1.0.deb/spatch --debugger \
+     --macro-file-builtins macros.h --control-flow --debug-cpp  simple1.c
+
+(ocd) break @ parsing_hacks 201
+(ocd) r
+(ocd) bt
+
+Backtrace:
+#0 Parsing_hacks parsing_c/parsing_hacks.ml:201:3
+#1 Cpp_token_c parsing_c/cpp_token_c.ml:364:30
+#2 Parsing_hacks parsing_c/parsing_hacks.ml:1815:39
+#3 Parse_c parsing_c/parse_c.ml:1064:5
+#4 Parse_c parsing_c/parse_c.ml:971:11
+#5 Parse_c parsing_c/parse_c.ml:1293:49
+#6 Parse_c parsing_c/parse_c.ml:1310:76
+#7 Test_parsing_c parsing_c/test_parsing_c.ml:233:66
+#8 Enter enter.ml:1697:7
+#9 Enter enter.ml:1711:19
+#10 Main main.ml:4:48
+#11 Common commons/common.ml:1056:49
+#12 Common commons/common.ml:166:15
+#13 Common commons/common.ml:3533:10
+#14 Main main.ml:2:3
+```
+
 
 # How to dump flow with deadcode
 
