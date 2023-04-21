@@ -569,4 +569,82 @@ node: Control_flow_c.node =
 
 ```
 
+= Tested latest Coccinelle from git
+
+```bash
+git branch -v
+
+  master                          8e007c83 Fix find -name flag when combining --c++ and --include-headers
+```
+
+Applied small patch to throw exceptions (still lot of other stuff, but):
+```diff
+diff --git a/parsing_c/test_parsing_c.ml b/parsing_c/test_parsing_c.ml
+index 5d5af6e0..7565df50 100644
+--- a/parsing_c/test_parsing_c.ml
++++ b/parsing_c/test_parsing_c.ml
+@@ -247,10 +247,11 @@ let local_test_cfg launchgv file =
+     match toprocess with
+       None -> ()
+     | Some fn -> (* old: Flow_to_ast.test !Flag.show_flow def *)
+-       try
++       (* try *)
+           let flows = Ast_to_flow.ast_to_control_flow e in
+          let do_flow mkstring flow =
+-            Ast_to_flow.deadcode_detection flow;
++            Printf.printf "Before X1\n";
++            (* Ast_to_flow.deadcode_detection flow; *)
+             let flow = Ast_to_flow.annotate_loop_nodes flow in
+ 
+             let flow' =
+@@ -274,7 +275,7 @@ let local_test_cfg launchgv file =
+          Stdcompat.List.iteri
+            (fun i (_,flow) -> flow +> do_option (do_flow (mkstring i)))
+            flows
+-        with Ast_to_flow.Error (x) -> Ast_to_flow.report_error x
+```
+
+Debugger session:
+
+```
+ocamldebug ~/projects/coccinelle-fork/spatch --debugger \
+  --macro-file-builtins macros_dowhile.h --control-flow --debug-cpp simple1.c 
+
+	OCaml Debugger version 4.11.1
+
+(ocd) r
+
+Loading program... done.
+init_defs_builtins: macros_dowhile.h
+(ONCE) CPP-MACRO: found known macro = my_return
+Time: 240505
+Program end.
+Uncaught exception: Coccinelle_modules.Control_flow_c_build.Error _
+(ocd) bt
+
+# now several 'b' ...
+
+(ocd) b
+Time: 240485 - pc: 0:5675152 - module Control_flow_c_build
+777           then raise (Error (DeadCode (Some (pinfo_of_ii ii))))<|a|>
+(ocd) bt
+Backtrace:
+#0 Control_flow_c_build parsing_c/control_flow_c_build.ml:777:64
+#1 Stdlib__list list.ml:121:35
+#2 Control_flow_c_build parsing_c/control_flow_c_build.ml:391:52
+#3 Control_flow_c_build parsing_c/control_flow_c_build.ml:1375:15
+#4 Control_flow_c_build parsing_c/control_flow_c_build.ml:1411:28
+#5 Control_flow_c_build parsing_c/control_flow_c_build.ml:1558:44
+#6 Test_parsing_c parsing_c/test_parsing_c.ml:251:23
+#7 Stdlib__list list.ml:110:16
+#8 Enter enter.ml:1782:7
+#9 Enter enter.ml:1796:19
+#10 Main main.ml:4:48
+#11 Common commons/common.ml:1056:49
+#12 Common commons/common.ml:166:15
+#13 Common commons/common.ml:3534:10
+#14 Main main.ml:2:3
+```
+
+
 
