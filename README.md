@@ -6,12 +6,18 @@ Coccinelle tool.
 Please see https://coccinelle.gitlabpages.inria.fr/website/
 
 Tested environment:
-OS: Debian 11, Apr 2023
+- OS: Debian 11, Apr 2023
+- Installed packages:
+  ```bash
+  sudo apt-get install coccinelle graphviz gv
+  ```
 
-Installed packages:
-```bash
-sudo apt-get install coccinelle graphviz gv
-```
+Future environment:
+- OS: Fedora 38, Apr 2023
+- Installed packages:
+  ```bash
+  sudo dnf install coccinelle graphviz gv
+  ```
 
 List of projects:
 
